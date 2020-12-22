@@ -105,4 +105,5 @@ def Run(Directory, AppName, ip="localhost", HTTPPort=5000, WebSocketPort=5001):
     app.run(host=ip, port=HTTPPort)
     for file in RemoveAfter:remove(file)
 
-Run("Test", "Testing")
+if __name__ == '__main__':
+    Run("Test", "Testing")
