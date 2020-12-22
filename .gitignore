@@ -1,0 +1,5 @@
+venv
+Test
+ws.log
+__pycache__
+.idea
