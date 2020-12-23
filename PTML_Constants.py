@@ -1,5 +1,6 @@
 QUOTE = '"'
 APOSTROPHE = "'"
+IGNORE_ATTRIBUTES = ["id","class"]
 DYNAMIC_ROUTE = """
 @app.route('{Path}')
 def Route{Counter}():

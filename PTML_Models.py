@@ -5,6 +5,8 @@ import PTML_Tags
 
 ElementHandlers = {}
 
+IDStart = -1
+
 def PatchType(t, session):
     def Wrapper(*arguments, **attributes):
         attributes["session"]=session
@@ -27,10 +29,16 @@ class Session:
     def __init__(self, client):
         self.Client = client
         self.Elements = []
-        for data in  PTML_Tags.ExecuteOnLoad:self.ExecuteCode(data)
+        self.IDCounter = IDStart
+        self.Route = ""
 
     def HandleData(self, data):
         data = data.split(" ")
+        instruction = data[0]
+        arguments = data[1:]
+        if instruction=="SetRoute":
+            self.Route=" ".join(arguments)
+            for data in PTML_Tags.ExecuteOnLoad[self.Route]: self.ExecuteCode(data)
 
     def ExecuteCode(self, code):
         log = lambda msg : Console.log(self, msg)
@@ -52,8 +60,8 @@ class Element_Model:
         if not tag:raise ValueError(f'Invalid tag: "{tag}"')
         self.Session = attributes["session"]
         self.Client = self.Session.Client
-        Element_Model.IDCounter += 1
-        self.ID = Element_Model.IDCounter
+        self.Session.IDCounter += 1
+        self.ID = self.Session.IDCounter
         attributes["class"] = ("" if not "class" in attributes else attributes["class"]+" ")+f"ptml-id-{self.ID}"
         self.Tag = tag
         self.Start = f"<{tag} {' '+' '.join(f'{key}={QUOTE}{attributes[key]}{QUOTE}' for key in attributes if key!='session') if len(attributes)>0 else ''}>"

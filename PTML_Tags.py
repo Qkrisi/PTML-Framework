@@ -1,9 +1,12 @@
 from inspect import getfullargspec
+from PTML_Constants import *
 
 Tags = {}
 
 Functions = {}
-ExecuteOnLoad = []
+ExecuteOnLoad = {}
+
+
 
 def Tag(name):
     def TagHandler(func):
@@ -13,7 +16,7 @@ def Tag(name):
             for arg in argspec.kwonlyargs:
                 NewArgs[arg]=kwargs[arg] if arg in kwargs else None
             for arg in kwargs:
-                if not arg in argspec.kwonlyargs:raise NameError(f"Invalid attribute: {arg}")
+                if not arg in IGNORE_ATTRIBUTES and not arg in argspec.kwonlyargs:raise NameError(f"Invalid attribute: {arg}")
             return func(**NewArgs)
         Tags[name]=TagWrapper
         return TagWrapper
@@ -34,14 +37,16 @@ def UpdateData(data: str) -> str:
     return NewData
 
 @Tag("pyscript")
-def PyScript(*, data):
+def PyScript(*, data, Route):
     print(data)
-    ExecuteOnLoad.append(UpdateData(data))
+    if not Route in ExecuteOnLoad:ExecuteOnLoad[Route]=[]
+    ExecuteOnLoad[Route].append(UpdateData(data))
     return ""
 
 @Tag("pyfunc")
-def PyFunction(*, name, data):
+def PyFunction(*, name, data, Route):
     name = name.strip() if name!=None else ""
     if not name:raise ValueError(f"Invalid function name: {name}")
-    Functions[name]=UpdateData(data)
+    if not Route in Functions:Functions[Route]={}
+    Functions[Route][name]=UpdateData(data)
     return ""
