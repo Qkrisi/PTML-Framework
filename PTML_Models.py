@@ -8,9 +8,10 @@ ElementHandlers = {}
 IDStart = -1
 
 
-def PatchType(t, session):
+def PatchType(t, session, Parent):
     def Wrapper(*arguments, **attributes):
         attributes["session"]=session
+        if Parent!=None:attributes["PTML_Parent"]=Parent
         element = t(*arguments, **attributes)
         session.Elements.append(element)
         return session.Elements[-1]
@@ -26,12 +27,24 @@ class Console:
     @staticmethod
     def log(session, msg):session.SendMessage(f"eval console.log('{str(msg)}')")
 
+class GlobalVariable:
+    def __init__(self, session, name, value):
+        self.Value = value
+        self.Session = session
+        self.Name = name
+
+    def __del__(self):
+        del self.Value
+        del self.Session.GlobalVariables[self.Name]
+        del self
+
 class Session:
     def __init__(self, client):
         self.Client = client
         self.Elements = []
         self.IDCounter = IDStart
         self.Route = "/"
+        self.GlobalVariables = {}
 
     def GetElementByPTMLId(self, id):
         for element in self.Elements:
@@ -44,7 +57,7 @@ class Session:
         arguments = data[1:]
         if instruction=="SetRoute":
             self.Route=" ".join(arguments)
-            for data in PTML_Tags.ExecuteOnLoad[self.Route]: self.ExecuteCode(data)
+            for data in PTML_Tags.ExecuteOnLoad[self.Route]: self.ExecuteCode(*data)
         if instruction=="call":
             self.ExecuteCode(PTML_Tags.Functions[self.Route][" ".join(arguments)])
         if instruction=="CallLiteral":
@@ -56,11 +69,17 @@ class Session:
         for element in self.Elements:
             if element.id==id:return element
         return None
+
     
-    def ExecuteCode(self, code):
+    def ExecuteCode(self, code, ParentID = "None"):
         log = lambda msg : Console.log(self, msg)
         GetElementById = lambda id : self.GetElementByID(id)
-        exec("\n".join([DYNAMIC_ELEMENT.format(Element_Name = name, Class_Name = ElementHandlers[name]) for name in ElementHandlers]))
+        def CreateGlobal(name, value = None):
+            self.GlobalVariables[name]=GlobalVariable(self, name, value)
+            return self.GlobalVariables[name]
+        Save = []
+        exec("\n".join([DYNAMIC_ELEMENT.format(Element_Name = name, Class_Name = ElementHandlers[name], Parent=ParentID) for name in ElementHandlers]))
+        for name in self.GlobalVariables:exec(f"{name} = self.GlobalVariables[{name}]", locals(), locals())
         try:exec(code, locals(), locals())
         except Exception as e:
             self.SendMessage(f"throw {format_exc()}")
@@ -85,7 +104,7 @@ class Element_Model:
         self.Tag = tag
         self._InnerHTML = ""
         self.End = f"</{tag}>"
-        self.Session.SendMessage(f"create {-1 if not 'parent' in attributes else attributes['parent']} {self.HTMLString}")
+        self.Session.SendMessage(f"create {attributes['parent'] if 'parent' in attributes else attributes['PTML_Parent'] if 'PTML_Parent' in attributes else -1} {self.HTMLString}")
 
     def __add__(self, other):
         self.InnerHTML += other

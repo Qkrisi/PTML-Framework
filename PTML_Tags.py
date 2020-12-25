@@ -37,8 +37,9 @@ def UpdateData(data: str) -> str:
     return NewData
 
 @Tag("pyscript")
-def PyScript(*, data, Route):
-    ExecuteOnLoad[Route].append(UpdateData(data))
+def PyScript(*, data, Route, ParentID):
+    print(Route)
+    ExecuteOnLoad[Route].append((UpdateData(data), str(ParentID)))
     return ""
 
 @Tag("pyfunc")

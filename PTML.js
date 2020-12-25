@@ -14,7 +14,7 @@ function ThrowError(err)
 
 function Create(id, element)
 {
-        let el = id=="-1" ? document.body : document.getElementById(`ptml-id-${id}`)
+        let el = id=="-1" ? document.body : document.getElementsByClassName(`ptml-id-${id}`)[0]
         el.innerHTML+=element
         found = element.match(/ptml-id-([0-9]+)/gm)[0]
         UpdateElement(document.getElementsByClassName(found)[0], found.replace("ptml-id-",""))

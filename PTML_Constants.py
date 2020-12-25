@@ -6,4 +6,4 @@ DYNAMIC_ROUTE = """
 def Route{Counter}():
     return ReadFromStatic('{Parsed}')
 """
-DYNAMIC_ELEMENT = "{Element_Name}=PatchType({Class_Name}, self)"
+DYNAMIC_ELEMENT = "{Element_Name}=PatchType({Class_Name}, self, {Parent})"

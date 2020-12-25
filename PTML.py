@@ -28,6 +28,7 @@ def UpdateAttributes(attributes, Route):
     if cl!="":attrib.append(("class", cl))
     return attrib
 
+
 class PTML_Parser(HTMLParser):
     def __init__(self, file, RoutePath):
         super().__init__()
@@ -35,9 +36,11 @@ class PTML_Parser(HTMLParser):
         self.CurrentTag = ""
         self.Datas = {}
         self.Route = RoutePath
+        self.ParentID = -1
 
     def handle_starttag(self, tag, attrs):
         attrs = UpdateAttributes(attrs, self.Route)
+        self.ParentID+=1
         if not tag in PTML_Tags.Tags:
             self.File.write(f"<{tag}{' '+' '.join(name+'='+QUOTE+value+QUOTE for name, value in attrs) if len(attrs)>0 else ''}>")
             self.CurrentTag = ""
@@ -57,6 +60,7 @@ class PTML_Parser(HTMLParser):
         for attribute in data[0]:
             kwargs[attribute[0]]=attribute[1]
         kwargs["Route"]=self.Route
+        kwargs["ParentID"]=self.ParentID
         kwargs["data"]=data[1]
         self.File.write(PTML_Tags.Tags[tag](**kwargs) + "\n")
 
