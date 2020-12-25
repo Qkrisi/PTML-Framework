@@ -104,7 +104,8 @@ def Run(Directory, AppName, ip="localhost", HTTPPort=5000, WebSocketPort=5001):
         file = path.basename(_path)
         Parsed = directory+f"/{path.splitext(file)[0]}_ptml.html"
         use_ptml = False
-        RoutePath = "/"+directory.replace(Directory, "", 1)+path.splitext(file)[0]
+        BasePath = "/"+directory.replace(Directory, "", 1)
+        RoutePath = BasePath+path.splitext(file)[0]
         PTML_Tags.ExecuteOnLoad[RoutePath] = []
         PTML_Tags.Functions[RoutePath] = {}
         if path.splitext(file)[1]==".ptml":
@@ -112,7 +113,7 @@ def Run(Directory, AppName, ip="localhost", HTTPPort=5000, WebSocketPort=5001):
             Parse(_path, Parsed, RoutePath)
             PTML_Models.IDStart = PTML_Models.Element_Model.IDCounter+1
             RemoveAfter.append(Parsed)
-        exec(DYNAMIC_ROUTE.format(Path=RoutePath, Counter=Counter, Parsed=Parsed if use_ptml else _path))
+        exec(DYNAMIC_ROUTE.format(IndexPath = f'@app.route("{BasePath}")' if file in ["index.html", "index.ptml"] else "", Path=RoutePath, Counter=Counter, Parsed=Parsed if use_ptml else _path))
     PTML_Sockets.Start(ip, WebSocketPort)
     app.run(host=ip, port=HTTPPort)
     for file in RemoveAfter:remove(file)

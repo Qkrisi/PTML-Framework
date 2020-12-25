@@ -56,7 +56,8 @@ class Session:
         instruction = data[0]
         arguments = data[1:]
         if instruction=="SetRoute":
-            self.Route=" ".join(arguments)
+            route = " ".join(arguments)
+            self.Route=route if route in PTML_Tags.ExecuteOnLoad else route+("/" if route[-1]!="/" else "")+"index"
             for data in PTML_Tags.ExecuteOnLoad[self.Route]: self.ExecuteCode(*data)
         if instruction=="call":
             self.ExecuteCode(PTML_Tags.Functions[self.Route][" ".join(arguments)])
