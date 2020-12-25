@@ -10,7 +10,7 @@ SelfModule = __import__(__name__)
 
 WSPort = -1
 
-def UpdateAttributes(attributes):
+def UpdateAttributes(attributes, Route):
     attrib = []
     PTML_Models.Element_Model.IDCounter+=1
     cl = f"ptml-id-{PTML_Models.Element_Model.IDCounter}"
@@ -19,7 +19,7 @@ def UpdateAttributes(attributes):
     for attribute in attributes:
         if attribute[0]=="class":continue
         add = True
-        for key in PTML_Tags.Functions:
+        for key in PTML_Tags.Functions[Route]:
             if attribute[1]==f"{key}()":
                 cl+=f" ptml-attribute-{attribute[0]}-{key}"
                 add = False
@@ -37,7 +37,7 @@ class PTML_Parser(HTMLParser):
         self.Route = RoutePath
 
     def handle_starttag(self, tag, attrs):
-        attrs = UpdateAttributes(attrs)
+        attrs = UpdateAttributes(attrs, self.Route)
         if not tag in PTML_Tags.Tags:
             self.File.write(f"<{tag}{' '+' '.join(name+'='+QUOTE+value+QUOTE for name, value in attrs) if len(attrs)>0 else ''}>")
             self.CurrentTag = ""
@@ -101,6 +101,8 @@ def Run(Directory, AppName, ip="localhost", HTTPPort=5000, WebSocketPort=5001):
         Parsed = directory+f"/{path.splitext(file)[0]}_ptml.html"
         use_ptml = False
         RoutePath = "/"+directory.replace(Directory, "", 1)+path.splitext(file)[0]
+        PTML_Tags.ExecuteOnLoad[RoutePath] = []
+        PTML_Tags.Functions[RoutePath] = {}
         if path.splitext(file)[1]==".ptml":
             use_ptml = True
             Parse(_path, Parsed, RoutePath)

@@ -7,6 +7,7 @@ ElementHandlers = {}
 
 IDStart = -1
 
+
 def PatchType(t, session):
     def Wrapper(*arguments, **attributes):
         attributes["session"]=session
@@ -30,7 +31,12 @@ class Session:
         self.Client = client
         self.Elements = []
         self.IDCounter = IDStart
-        self.Route = ""
+        self.Route = "/"
+
+    def GetElementByPTMLId(self, id):
+        for element in self.Elements:
+            if element.ID==id:return element
+        return None
 
     def HandleData(self, data):
         data = data.split(" ")
@@ -39,9 +45,21 @@ class Session:
         if instruction=="SetRoute":
             self.Route=" ".join(arguments)
             for data in PTML_Tags.ExecuteOnLoad[self.Route]: self.ExecuteCode(data)
+        if instruction=="call":
+            self.ExecuteCode(PTML_Tags.Functions[self.Route][" ".join(arguments)])
+        if instruction=="CallLiteral":
+            id, attr = arguments
+            getattr(self.GetElementByPTMLId(int(id)), attr)()
 
+
+    def GetElementByID(self, id):
+        for element in self.Elements:
+            if element.id==id:return element
+        return None
+    
     def ExecuteCode(self, code):
         log = lambda msg : Console.log(self, msg)
+        GetElementById = lambda id : self.GetElementByID(id)
         exec("\n".join([DYNAMIC_ELEMENT.format(Element_Name = name, Class_Name = ElementHandlers[name]) for name in ElementHandlers]))
         try:exec(code, locals(), locals())
         except Exception as e:
@@ -63,36 +81,79 @@ class Element_Model:
         self.Session.IDCounter += 1
         self.ID = self.Session.IDCounter
         attributes["class"] = ("" if not "class" in attributes else attributes["class"]+" ")+f"ptml-id-{self.ID}"
+        self._Attributes = attributes
         self.Tag = tag
-        self.Start = f"<{tag} {' '+' '.join(f'{key}={QUOTE}{attributes[key]}{QUOTE}' for key in attributes if key!='session') if len(attributes)>0 else ''}>"
         self._InnerHTML = ""
         self.End = f"</{tag}>"
-        self.Session.SendMessage(f"create {self.HTMLString}")
+        self.Session.SendMessage(f"create {-1 if not 'parent' in attributes else attributes['parent']} {self.HTMLString}")
 
     def __add__(self, other):
-        self.InnerHTML += str(other)
+        self.InnerHTML += other
 
     def __str__(self):
         return self.HTMLString
+
+    def __getitem__(self, item: str):
+        return self._Attributes[item]
+
+    def __setitem__(self, key: str, value):
+        self._Attributes[key]=value
+        if key=="class":key="className"
+        self.Session.SendMessage(f"change {self.ID} {key} {value}")
+
+    def AddClass(self, cl):
+        self["class"]+=f"{' ' if self['class'] else ''}{cl}"
 
     @property
     def HTMLString(self):
         return self.Start+self.InnerHTML+self.End
 
     @property
+    def Start(self):
+        return f"<{self.Tag} {' '+' '.join(f'{key}={QUOTE}{self._Attributes[key]}{QUOTE}' for key in self._Attributes if key!='session') if len(self._Attributes)>0 else ''}>"
+
+    @property
     def InnerHTML(self):return self._InnerHTML
     @InnerHTML.setter
     def InnerHTML(self, value):
-        self._InnerHTML = value
+        self._InnerHTML = str(value)
         self.Session.SendMessage(f"ChangeInner {self.ID} {self.InnerHTML}")
 
+    @property
+    def ClassList(self):
+        return self._Attributes["class"].split(" ")
+
+    @property
+    def id(self):
+        return None if not "id" in self._Attributes else self._Attributes["id"]
+
+class CommonProperties(Element_Model):
+    def __init__(self, tag, **attributes):
+        super().__init__(tag, **attributes)
+
+    @property
+    def Text(self): return self.InnerHTML
+    @Text.setter
+    def Text(self, value): self.InnerHTML = value
+
 @ElementAlias("Paragraph")
-class Paragraph_Model(Element_Model):
+class Paragraph_Model(CommonProperties):
     def __init__(self, Text="", **attributes):
         super().__init__("p", **attributes)
         self.Text = Text
 
+@ElementAlias("Button")
+class Button_Model(CommonProperties):
+    def __init__(self, Text="", OnClick=None, **attributes):
+        super().__init__("button", **attributes)
+        self.Text = Text
+        self._OnClick = None
+        self.onclick = OnClick
+
     @property
-    def Text(self):return self.InnerHTML
-    @Text.setter
-    def Text(self, value):self.InnerHTML = value
+    def onclick(self):return self._OnClick
+    @onclick.setter
+    def onclick(self, value):
+        self._OnClick = value
+        self.AddClass("ptml-literal-onclick")
+

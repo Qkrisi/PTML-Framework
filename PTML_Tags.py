@@ -38,8 +38,6 @@ def UpdateData(data: str) -> str:
 
 @Tag("pyscript")
 def PyScript(*, data, Route):
-    print(data)
-    if not Route in ExecuteOnLoad:ExecuteOnLoad[Route]=[]
     ExecuteOnLoad[Route].append(UpdateData(data))
     return ""
 
@@ -47,6 +45,5 @@ def PyScript(*, data, Route):
 def PyFunction(*, name, data, Route):
     name = name.strip() if name!=None else ""
     if not name:raise ValueError(f"Invalid function name: {name}")
-    if not Route in Functions:Functions[Route]={}
     Functions[Route][name]=UpdateData(data)
     return ""
